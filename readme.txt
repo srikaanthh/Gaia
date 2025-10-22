@@ -1,246 +1,302 @@
-# Land-Cover Semantic Segmentation (U-Net + EfficientNet-B0)
+# Gaia 
+### Land Cover Semantic Segmentation using Deep Learning
 
-A production-ready PyTorch pipeline for land-cover semantic segmentation on high-resolution satellite imagery. It reproduces and extends ideas from “Segmenting the Earth: Challenges in Land Cover Classification” (Shirley Cheng, Stanford, 2023) and adds practical engineering for local training/inference, dataset patching, metrics, and performance.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python Version">
+  <img src="https://img.shields.io/badge/PyTorch-2.0+-orange" alt="PyTorch">
+  <img src="https://img.shields.io/badge/Model-U--Net%20%2B%20EfficientNet-green" alt="Model">
+  <img src="https://img.shields.io/badge/Task-Semantic%20Segmentation-purple" alt="Task">
+  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
+</p>
 
-## Key features
-- U-Net backbone with EfficientNet-B0 (via Segmentation Models PyTorch)
-- Patch-based training/inference for large imagery (configurable tile size)
-- Multiple datasets: LandCover.ai (native) + optional DeepGlobe conversion/merge
-- Robust train/val split with reproducibility
-- Clean dataset class with vectorized mask handling (fast and memory-friendly)
-- Batched inference over patches (significant speedup)
-- Logging to disk, best-model checkpointing
+**Gaia** (*Greek goddess of Earth*) - A production-ready deep learning pipeline for automated land cover classification from satellite imagery.
 
-See OPTIMIZATION_SUMMARY.md for details on the performance improvements (num_workers, cuDNN, batched patch inference, etc.).
-
----
-
-## Repository structure
-
-```
-Land-Cover-Semantic-Segmentation-PyTorch-main/
-├─ assets/                      # images used in docs
-├─ config/
-│  └─ config.yaml              # central configuration for scripts
-├─ data/                       # datasets (created/downloaded locally)
-│  ├─ train/
-│  │  ├─ images/
-│  │  └─ masks/
-│  ├─ test/
-│  │  ├─ images/
-│  │  └─ masks/
-│  └─ patches_512/            # generated patches and splits
-├─ models/                     # saved trained weights (.pth)
-├─ notebooks/
-│  ├─ training.ipynb          # original Colab-centric notebook
-│  └─ training 2.ipynb        # local-friendly; supports LandCover + DeepGlobe merge
-├─ output/                    # predictions, plots
-├─ src/
-│  ├─ train.py                # training entrypoint (config-driven)
-│  ├─ test.py                 # inference + plots (config-driven)
-│  └─ utils/
-│     ├─ constants.py
-│     ├─ dataset.py           # optimized dataset loader
-│     ├─ logger.py
-│     ├─ patching.py          # image/mask patchification utilities
-│     ├─ plot.py
-│     ├─ preprocess.py        # augment/preprocess pipelines
-│     └─ root_config.py       # config loader and path roots
-├─ requirements.txt
-├─ OPTIMIZATION_SUMMARY.md
-└─ README.md (this file)
-```
+**Author:** Srikanth Akkaru  
+Master's in Computer Science, University of South Florida  
+📧 akkarusrikanth@gmail.com  
+🔗 [GitHub](https://github.com/srikaanthh)
 
 ---
 
-## Datasets
+##  Project Overview
 
-This project supports:
-- LandCover.ai (native)
-- DeepGlobe Land Cover Classification (optional; converted to LandCover.ai label space)
+Gaia automatically segments satellite images into different land cover types using state-of-the-art deep learning. Built on U-Net architecture with EfficientNet-B0 encoder, it achieves high accuracy on large-scale satellite imagery through intelligent patch-based processing.
 
-Masks are expected as single-channel integer class IDs. The default classes are:
+### Key Features
 
-```
-0 = background
-1 = building
-2 = woodland
-3 = water
-4 = road (optional; can be excluded in config)
-```
-
-### LandCover.ai (Kaggle)
-- The local-friendly notebook `notebooks/training 2.ipynb` includes a Python cell to unzip `landcoverai.zip` into `data/`.
-- Alternatively, download with Kaggle CLI (see Setup below) and unzip to `data/`.
-
-### DeepGlobe (optional fusion)
-- `notebooks/training 2.ipynb` contains cells to download DeepGlobe from Kaggle, convert masks to LandCover.ai-compatible IDs, patchify, and merge patches with LandCover.ai before splitting.
-- You may need to adjust the mapping dictionary `DG_TO_LCAI` depending on your specific DeepGlobe distribution (ID/palette). Verify via `np.unique(mask)` and update accordingly.
+ **U-Net + EfficientNet-B0** - Powerful encoder-decoder architecture  
+ **Patch-Based Processing** - Handles large satellite images efficiently  
+ **Multi-Dataset Support** - LandCover.ai + optional DeepGlobe fusion  
+ **Optimized Pipeline** - Fast training and inference with PyTorch  
+ **Production Ready** - Complete logging, checkpointing, and evaluation  
 
 ---
 
-## Setup (macOS, zsh)
+## 🗺️ Land Cover Classes
 
-Prerequisites:
-- Python 3.9+ (3.10 recommended)
-- CUDA GPU optional but recommended (Linux). On macOS you can train on CPU or Apple Silicon (adjust device in config).
-- Kaggle account + API token (kaggle.json)
+The model segments images into the following categories:
 
-1) Create and activate a virtual environment (recommended)
+| Class ID | Category | Description |
+|----------|----------|-------------|
+| 0 | Background | Unlabeled areas |
+| 1 | Building | Urban structures |
+| 2 | Woodland | Forests and trees |
+| 3 | Water | Rivers, lakes, oceans |
+| 4 | Road | Streets and highways |
+
+---
+
+## Architecture
 
 ```
-python3 -m venv .venv
-source .venv/bin/activate
+Input Satellite Image (3 channels RGB)
+           ↓
+    EfficientNet-B0 Encoder
+           ↓
+       U-Net Decoder
+           ↓
+  Softmax Activation
+           ↓
+Output Segmentation Mask (N classes)
 ```
 
-2) Install Python dependencies
+**Model:** U-Net with EfficientNet-B0 backbone  
+**Framework:** PyTorch + Segmentation Models PyTorch (SMP)  
+**Training Strategy:** Patch-based with configurable tile size (default 512×512)
+
+---
+
+## Repository Structure
 
 ```
+gaia/
+├── config/
+│   └── config.yaml              # Main configuration file
+├── data/                        # Datasets directory
+│   ├── train/
+│   │   ├── images/
+│   │   └── masks/
+│   ├── test/
+│   └── patches_512/            # Generated patches
+├── models/                      # Saved model weights
+├── output/                      # Predictions and visualizations
+├── src/
+│   ├── train.py                # Training script
+│   ├── test.py                 # Inference script
+│   └── utils/
+│       ├── dataset.py          # Data loading utilities
+│       ├── patching.py         # Image patchification
+│       ├── preprocess.py       # Data augmentation
+│       └── logger.py           # Logging utilities
+├── notebooks/
+│   └── training.ipynb          # Interactive training notebook
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.10+
+- CUDA-capable GPU (recommended)
+- 8GB+ RAM
+- Kaggle API credentials
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/srikaanthh/gaia.git
+cd gaia
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-3) Kaggle CLI credentials
+### Setup Kaggle Credentials
 
-- Download your Kaggle API token from https://www.kaggle.com/ > Account > Create New API Token
-- Save as `~/.kaggle/kaggle.json` with correct permissions:
-
-```
+```bash
+# Create Kaggle directory
 mkdir -p ~/.kaggle
+
+# Copy your kaggle.json
 cp /path/to/kaggle.json ~/.kaggle/kaggle.json
+
+# Set permissions
 chmod 600 ~/.kaggle/kaggle.json
 ```
 
-4) Download datasets (optional from terminal)
+### Download Datasets
 
-```
-# LandCover.ai
+```bash
+# LandCover.ai dataset
 kaggle datasets download -d adrianboguszewski/landcoverai -p data
 unzip -q data/landcoverai.zip -d data
 
-# DeepGlobe Land Cover (example slug)
+# Optional: DeepGlobe dataset
 kaggle datasets download -d zfturbo/deepglobe-land-cover-classification-dataset -p data
 unzip -q data/*.zip -d data/deepglobe
 ```
-
-Note: The notebook `training 2.ipynb` can also perform these via Python cells.
-
----
-
-## Configuration
-
-All runtime options are managed via `config/config.yaml` and `utils/constants.py`. Key knobs:
-
-- vars:
-	- patch_size: size of training tiles (e.g., 512)
-	- batch_size: training batch size (e.g., 16)
-	- model_arch: U-Net variant from SMP (e.g., Unet)
-	- encoder: EfficientNet-B0 (default) or other SMP encoders
-	- encoder_weights: imagenet
-	- activation: softmax2d or None
-	- optimizer_choice: Adam, SGD, etc.
-	- init_lr: initial learning rate
-	- epochs: number of epochs
-	- train_classes / test_classes: subset of classes to include
-	- device: cuda or cpu
-- dirs:
-	- data_dir, train_dir, test_dir, image_dir, mask_dir
-	- model_dir, output_dir, log_dir
-
-The scripts read config and honor your local paths.
 
 ---
 
 ## Training
 
-Use the optimized Python script:
+### Using Python Script
 
-```
+```bash
 python src/train.py
 ```
 
-What it does:
-- Patchifies images/masks into `data/train/patches_{patch_size}`
-- Discards background-dominant patches based on `discard_rate`
-- Splits into train/val (default 80/20)
-- Builds U-Net+EfficientNet-B0, trains, logs IoU/Dice
-- Saves best model to `models/` (or as configured)
-- Preserves patches by default for faster re-runs
+The training pipeline will:
+1. Patchify images into 512×512 tiles
+2. Split data into train/validation (80/20)
+3. Train U-Net model with EfficientNet-B0 encoder
+4. Log metrics (IoU, Dice loss)
+5. Save best model checkpoint
 
-Performance tips:
-- DataLoader uses tuned `num_workers`, `pin_memory`, `persistent_workers`
-- cuDNN benchmark enabled on CUDA
-- Consider enabling mixed precision (AMP) with a custom loop if you need more speed
+### Configuration
+
+Edit `config/config.yaml` to customize:
+
+```yaml
+patch_size: 512          # Tile size for training
+batch_size: 16           # Training batch size
+init_lr: 0.0003         # Learning rate
+epochs: 50              # Number of epochs
+encoder: efficientnet-b0 # Encoder architecture
+device: cuda            # cuda or cpu
+```
 
 ---
 
-## Inference & evaluation
+## 🔍 Inference
 
-Run batched patch-based inference:
+### Run Predictions
 
-```
+```bash
 python src/test.py
 ```
 
-What it does:
-- Loads best checkpoint (configurable)
-- Predicts masks in batched patches (fast)
-- Reconstructs full-size masks, saves to `output/.../predicted_masks/`
-- Saves side-by-side plots to `output/.../prediction_plots/`
+This will:
+- Load the best trained model
+- Process test images in batches
+- Generate segmentation masks
+- Save predictions and visualizations to `output/`
+
+### Output
+
+- **Predicted Masks:** `output/predicted_masks/`
+- **Visualization Plots:** `output/prediction_plots/`
 
 ---
 
-## Notebooks
+## Performance
 
-- `notebooks/training 2.ipynb` is adapted for local use (macOS/Linux). It can:
-	- Download & unzip LandCover.ai
-	- Download DeepGlobe, convert masks to LandCover.ai IDs, patchify, and merge
-	- Visualize samples
-	- Optionally train/eval within the notebook (or call into the scripts)
+### Metrics
 
-Avoid Colab-only cells (apt-get, /content drive mount) on local runs.
+- **IoU (Intersection over Union):** Measures overlap accuracy
+- **Dice Coefficient:** Harmonic mean of precision and recall
+- **Pixel Accuracy:** Overall classification accuracy
+
+
+*Results vary based on dataset composition and training parameters*
 
 ---
 
-## Results (example)
+## Datasets
 
-- Backbone: EfficientNet-B0, Unet
-- Tile: 512×512, batch 16, LR 3e-4
-- Metrics: IoU@0.5, Dice loss
+### LandCover.ai
+- High-resolution aerial imagery from Poland
+- 41 images covering ~216 km²
+- Native support with no preprocessing required
 
-Your exact numbers depend on dataset mix, mapping quality (DeepGlobe→LandCover), and training time. Use the logs in `logs/` and saved best models in `models/` for comparison.
+### DeepGlobe (Optional)
+- Global land cover classification dataset
+- Can be merged with LandCover.ai
+- Requires label mapping (see notebook)
+
+---
+
+## Optimizations
+
+- **Batched Patch Inference** - Processes multiple patches simultaneously
+- **DataLoader Tuning** - Optimized `num_workers` and `pin_memory`
+- **cuDNN Benchmark** - Automatic kernel optimization
+- **Efficient Memory Usage** - Vectorized mask handling
+
+See `OPTIMIZATION_SUMMARY.md` for detailed performance analysis.
 
 ---
 
 ## Troubleshooting
 
-- Kaggle: “401/403” → ensure `~/.kaggle/kaggle.json` exists with `chmod 600`.
-- CUDA OOM: reduce `batch_size` or `patch_size`.
-- Slow dataloading: increase `num_workers` in `src/train.py` or ensure dataset resides on fast storage.
-- Class mismatch: verify mask unique values and adjust `DG_TO_LCAI` mapping (DeepGlobe section in notebook).
-- Seam artifacts at inference: either keep overlap-and-blend or increase patch size.
+**CUDA Out of Memory?**
+- Reduce `batch_size` in config
+- Decrease `patch_size`
+
+**Slow Data Loading?**
+- Increase `num_workers` in train.py
+- Use SSD for dataset storage
+
+**Kaggle API Issues?**
+- Verify `~/.kaggle/kaggle.json` exists
+- Check file permissions: `chmod 600`
+
+**Class Mismatch Errors?**
+- Verify mask values with `np.unique(mask)`
+- Update mapping in preprocessing
 
 ---
 
 ## Citation
 
-Please cite the original datasets and SMP library if you use this in academic work. Consider referencing:
-- Segmentation Models PyTorch (SMP): https://github.com/qubvel/segmentation_models.pytorch
+If you use Gaia in your research, please cite:
+
+```bibtex
+@software{gaia2024,
+  author = {Akkaru, Srikanth},
+  title = {Gaia: Land Cover Semantic Segmentation},
+  year = {2024},
+  publisher = {GitHub},
+  url = {https://github.com/srikaanthh/gaia}
+}
+```
+
+**References:**
+- Segmentation Models PyTorch: https://github.com/qubvel/segmentation_models.pytorch
 - LandCover.ai: https://landcover.ai
-- DeepGlobe 2018: https://deepglobe.org
-- Cheng, S. “Segmenting the Earth: Challenges in Land Cover Classification,” Stanford (2023)
+- DeepGlobe: https://deepglobe.org
+
 
 ---
 
-## License
+## 📄 License
 
-This repository is released under the LICENSE included in this repo. Datasets have their own licenses—please review and comply with each dataset’s terms when downloading and using them.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+**Note:** Datasets have their own licenses. Please review and comply with each dataset's terms.
 
 ---
 
-## Author
+## Acknowledgments
 
-Srikanth Akkaru  
-Master’s in Computer Science, University of South Florida  
-akkarusrikanth@gmail.com  
-GitHub: https://github.com/srikaanthh
+Inspired by "Segmenting the Earth: Challenges in Land Cover Classification" by Shirley Cheng (Stanford, 2023)
+
+Built with:
+- PyTorch
+- Segmentation Models PyTorch (SMP)
+- Albumentations
+- NumPy & Matplotlib
+
+---
+
+**Made with 🌍 by Srikanth Akkaru**
